@@ -1,0 +1,88 @@
+准备环境: 所有交换机创建vlan2 ,sw1与sw2分别配置不通vlan的ip地址
+所有交换机之间的链路配置为中继(trunk)链路
+sw1   vlan1  主    vlan2  备
+sw2   vlan1  备    vlan2  主
+分别进入2台s5700配置vrrp
+in vlan 1
+vrrp vrid 1 virtual-ip 192.168.1.254
+in vlan 2
+vrrp vrid 2 virtual-ip 192.168.2.254
+dis vrrp brief   //查看vrrp状态
+--------------------------------------------
+sw1 
+in vlan 1
+vrrp vrid 1 priority 105   //修改sw1的vlan1中vrrp优先级
+sw2
+in vlan 2
+vrrp vrid 2 priority 105   //修改sw2的vlan2中vrrp优先级
+dis vrrp brief   //再次查看vrrp状态
+=====================================
+升级企业级网络:
+1, 所有设备添加vlan3 vlan4,新添加的设备要创建vlan2~vlan4
+相当于目前所有交换机拥有vlan 1~4
+2,在网关设备添加新ip地址
+3,完善全网trunk
+4,完善vrrp
+sw1   vlan1  主    vlan2  备     vlan3  主    vlan4  备
+sw2   vlan1  备    vlan2  主     vlan3  备    vlan4  主
+
+sw1
+in vlan 3
+vrrp vrid 3 virtual-ip 192.168.3.254
+vrrp vrid 3 priority 105 
+in vlan 4
+vrrp vrid 4 virtual-ip 192.168.4.254
+sw2
+in vlan 3
+vrrp vrid 3 virtual-ip 192.168.3.254
+in vlan 4
+vrrp vrid 4 virtual-ip 192.168.4.254
+vrrp vrid 4 priority 105 
+
+5,添加pc,配置ip与网关
+pc1  192.168.1.1   192.168.1.254
+pc2  192.168.2.1   192.168.2.254
+pc3  192.168.3.1   192.168.3.254
+pc4  192.168.4.1   192.168.4.254
+
+6,为不同pc链接的交换机接口加入对应的vlan
+pc1 vlan1
+pc2 vlan2
+pc3 vlan3
+pc4 vlan4
+最后效果是全网互通
+
+7,添加连接外部网络的路由器ar2220两台
+再给s5700与路由器链接的线路配置ip
+	路由器接口直接配ip即可
+	s5700配置ip先创建vlan
+
+8,配置动态路由,在路由器与s5700开启ospf
+并宣告自身所直连的网段
+
+9,添加外部网络设备并配置ip
+
+10,配置nat
+	创建acl列表放行所有设备
+	acl 2000
+	rule permit source any
+	in g0/0/2
+	nat outbound 2000
+11,在路由器配置默认路由,并进入ospf宣告此路由
+	ip route-static 0.0.0.0 0 100.0.0.10
+	[Huawei]ospf
+	[Huawei-ospf-1]default-route-advertise 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
